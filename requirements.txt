@@ -1,0 +1,25 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+python-dotenv
+pyngrok
+gunicorn
+
+# GitHub Integration
+PyGithub
+requests
+
+# AI & LLM Integration
+google-generativeai
+langchain
+langchain-google-genai
+langgraph
+
+# Code Analysis & Testing
+ast-tools
+pytest
+coverage
+
+# Multi-Agent Coordination
+pydantic
+httpx

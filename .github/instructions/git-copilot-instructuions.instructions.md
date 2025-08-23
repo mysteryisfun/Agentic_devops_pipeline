@@ -1,0 +1,8 @@
+- maintain a docmunetation after finishig each module in docs folder
+- dont add unnecessary code to make it complex this is a hackathon project
+- each time buildidng new features dont harm the existing functionality and the strcuture
+- dont over engineer the shit do whats required only 
+- we are using conda env finetune
+- terminal we are using is powershell
+- alwaays create test files in tests folder only
+- dont create new terminal sessions for each run, run on same terminal sesssion
