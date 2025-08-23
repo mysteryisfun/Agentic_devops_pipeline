@@ -1,0 +1,25 @@
+
+# Node modules
+node_modules/
+
+# Build output
+build/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.vscode/
+*.idea/
+
+# MCP
+.mcp.json
