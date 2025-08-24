@@ -1,0 +1,358 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 245 12% 98%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    /* Pipeline Stage Colors */
+    --stage-pr: 220 100% 50%;
+    --stage-pr-light: 220 100% 95%;
+    --stage-build: 210 100% 50%;
+    --stage-build-light: 210 100% 95%;
+    --stage-analyze: 270 100% 50%;
+    --stage-analyze-light: 270 100% 95%;
+    --stage-fix: 30 100% 50%;
+    --stage-fix-light: 30 100% 95%;
+    --stage-test: 120 100% 40%;
+    --stage-test-light: 120 100% 95%;
+    --stage-results: 180 100% 40%;
+    --stage-results-light: 180 100% 95%;
+
+    /* Status Colors */
+    --status-pending: 220 10% 70%;
+    --status-progress: 210 100% 50%;
+    --status-completed: 120 100% 40%;
+    --status-failed: 0 100% 50%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(220 100% 50%), hsl(270 100% 50%));
+    --gradient-success: linear-gradient(135deg, hsl(120 100% 40%), hsl(180 100% 40%));
+    --gradient-pipeline: linear-gradient(90deg, hsl(220 100% 95%), hsl(270 100% 95%), hsl(30 100% 95%), hsl(120 100% 95%), hsl(180 100% 95%));
+
+    /* Shadows */
+    --shadow-stage: 0 4px 20px hsl(220 20% 85%);
+    --shadow-glow: 0 0 20px;
+    --shadow-active: 0 8px 40px;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 240 10% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 240 10% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    /* Dark theme stage colors */
+    --stage-pr-light: 220 100% 15%;
+    --stage-build-light: 210 100% 15%;
+    --stage-analyze-light: 270 100% 15%;
+    --stage-fix-light: 30 100% 15%;
+    --stage-test-light: 120 100% 15%;
+    --stage-results-light: 180 100% 15%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    @apply dark;
+  }
+}
+
+@layer components {
+  /* Custom Scrollbars for Dark Theme */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thumb-muted {
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+  
+  .scrollbar-track-transparent {
+    scrollbar-color: hsl(var(--muted)) transparent;
+  }
+  
+  .scrollbar-thumb-slate-600 {
+    scrollbar-color: #64748b transparent;
+  }
+
+  /* Webkit scrollbars for better styling */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+
+  .scrollbar-thumb-slate-600::-webkit-scrollbar-thumb {
+    background: #64748b;
+  }
+
+  /* Additional scrollbar styles for terminal and horizontal scrolling */
+  .scrollbar-thumb-gray-700::-webkit-scrollbar-thumb {
+    background-color: #374151;
+  }
+
+  .scrollbar-thumb-gray-700::-webkit-scrollbar-thumb:hover {
+    background-color: #4b5563;
+  }
+
+  /* Horizontal scrollbar for pipeline stages */
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: rgba(31, 41, 55, 0.5);
+    border-radius: 4px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 4px;
+  }
+
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+
+  /* Smooth animations and transitions */
+  .backdrop-blur-xl {
+    backdrop-filter: blur(24px);
+  }
+  
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+  }
+
+  /* Custom snap scrolling */
+  .snap-x {
+    scroll-snap-type: x mandatory;
+  }
+  
+  .snap-center {
+    scroll-snap-align: center;
+  }
+
+  /* Enhanced Pipeline Cards */
+  /* Pipeline Stage Cards */
+  .stage-card {
+    @apply relative rounded-2xl p-6 transition-all duration-300 cursor-pointer;
+    @apply border border-border/20 backdrop-blur-sm;
+    box-shadow: var(--shadow-stage);
+  }
+
+  .stage-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-active) hsl(var(--primary) / 0.1);
+  }
+
+  .stage-card.active {
+    box-shadow: var(--shadow-active) hsl(var(--status-progress) / 0.2);
+  }
+
+  /* Stage-specific backgrounds */
+  .stage-pr { background: linear-gradient(135deg, hsl(var(--stage-pr-light)), hsl(var(--stage-pr-light) / 0.7)); }
+  .stage-build { background: linear-gradient(135deg, hsl(var(--stage-build-light)), hsl(var(--stage-build-light) / 0.7)); }
+  .stage-analyze { background: linear-gradient(135deg, hsl(var(--stage-analyze-light)), hsl(var(--stage-analyze-light) / 0.7)); }
+  .stage-fix { background: linear-gradient(135deg, hsl(var(--stage-fix-light)), hsl(var(--stage-fix-light) / 0.7)); }
+  .stage-test { background: linear-gradient(135deg, hsl(var(--stage-test-light)), hsl(var(--stage-test-light) / 0.7)); }
+  .stage-results { background: linear-gradient(135deg, hsl(var(--stage-results-light)), hsl(var(--stage-results-light) / 0.7)); }
+
+  /* Animated connectors */
+  .pipeline-connector {
+    @apply relative flex items-center justify-center;
+  }
+
+  .pipeline-connector::before {
+    content: '';
+    @apply absolute w-full h-0.5 bg-gradient-to-r from-border to-primary/30;
+  }
+
+  .pipeline-connector.active::before {
+    background: linear-gradient(90deg, hsl(var(--status-progress)), hsl(var(--status-progress) / 0.3));
+    animation: flowPulse 2s ease-in-out infinite;
+  }
+
+  /* Status badges */
+  .status-badge {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .status-pending { @apply bg-muted text-muted-foreground; }
+  .status-progress { 
+    @apply text-white;
+    background: linear-gradient(135deg, hsl(var(--status-progress)), hsl(var(--status-progress) / 0.8));
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .status-completed { @apply bg-green-500/20 text-green-400; }
+  .status-failed { @apply bg-red-500/20 text-red-400; }
+
+  /* Test cases tooltip */
+  .test-cases-tooltip {
+    @apply absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50;
+    @apply bg-card border border-border rounded-lg p-4 shadow-xl backdrop-blur-sm;
+    @apply opacity-0 pointer-events-none transition-all duration-200;
+  }
+
+  .stage-card:hover .test-cases-tooltip {
+    @apply opacity-100 pointer-events-auto;
+  }
+
+  /* Agent avatars */
+  .agent-avatar {
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold;
+    @apply border-2 border-white shadow-lg;
+  }
+
+  .agent-pr { background: linear-gradient(135deg, hsl(var(--stage-pr)), hsl(var(--stage-pr) / 0.8)); }
+  .agent-build { background: linear-gradient(135deg, hsl(var(--stage-build)), hsl(var(--stage-build) / 0.8)); }
+  .agent-analyze { background: linear-gradient(135deg, hsl(var(--stage-analyze)), hsl(var(--stage-analyze) / 0.8)); }
+  .agent-fix { background: linear-gradient(135deg, hsl(var(--stage-fix)), hsl(var(--stage-fix) / 0.8)); }
+  .agent-test { background: linear-gradient(135deg, hsl(var(--stage-test)), hsl(var(--stage-test) / 0.8)); }
+  .agent-results { background: linear-gradient(135deg, hsl(var(--stage-results)), hsl(var(--stage-results) / 0.8)); }
+
+  /* Progress bar */
+  .progress-bar {
+    @apply h-2 rounded-full overflow-hidden;
+    background: var(--gradient-pipeline);
+  }
+
+  .progress-fill {
+    @apply h-full transition-all duration-1000 ease-out;
+    background: var(--gradient-primary);
+  }
+}
+
+@layer utilities {
+  /* Animations */
+  @keyframes flowPulse {
+    0%, 100% { opacity: 0.5; transform: scaleX(1); }
+    50% { opacity: 1; transform: scaleX(1.05); }
+  }
+
+  @keyframes celebration {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(1.1) rotate(3deg); }
+    75% { transform: scale(1.1) rotate(-3deg); }
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.3); }
+    50% { box-shadow: 0 0 40px hsl(var(--primary) / 0.6); }
+  }
+
+  .animate-celebration {
+    animation: celebration 0.6s ease-in-out;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  .animate-flow-pulse {
+    animation: flowPulse 2s ease-in-out infinite;
+  }
+}
