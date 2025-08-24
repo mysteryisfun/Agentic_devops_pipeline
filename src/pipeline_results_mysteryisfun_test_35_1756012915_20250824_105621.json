@@ -1,0 +1,95 @@
+{
+  "pipeline_id": "mysteryisfun/test_35_1756012915",
+  "repository_name": "mysteryisfun/test",
+  "branch_name": "test2",
+  "pr_number": 35,
+  "pipeline_status": "success",
+  "start_timestamp": "2025-08-24T10:51:55.456579",
+  "end_timestamp": "2025-08-24T10:56:21.182511",
+  "total_duration": 265.7259318828583,
+  "trigger_info": {
+    "trigger_type": "webhook",
+    "triggered_by": "github",
+    "event_type": "pull_request",
+    "timestamp": "2025-08-24T10:51:55.456579"
+  },
+  "build_results": {
+    "success": true,
+    "duration": 0.0,
+    "files_downloaded": 0,
+    "file_types_processed": [],
+    "build_errors": [],
+    "files_analyzed": 0
+  },
+  "analysis_results": {
+    "success": true,
+    "duration": 0.0,
+    "files_analyzed": 1,
+    "total_issues": 2,
+    "vulnerabilities": [
+      {
+        "type": "vulnerability",
+        "description": "The 'calculate_average' function lacks error handling for empty lists, causing ZeroDivisionError. If called in a critical path without proper exception handling, this can cause application crashes and lead to a Denial of Service.",
+        "severity": "MEDIUM",
+        "file_path": "",
+        "line_number": 167,
+        "confidence_score": 0.0,
+        "category": "unknown"
+      }
+    ],
+    "severity_breakdown": {
+      "MEDIUM": 1
+    },
+    "categories_breakdown": {
+      "unknown": 1
+    },
+    "overall_risk_level": "LOW",
+    "ai_confidence_score": 0.0,
+    "recommendations": [
+      "Always consider and explicitly handle edge cases, such as empty inputs or zero values, when performing mathematical operations or processing data, to prevent unexpected runtime errors.",
+      "Ensure all functions that might raise predictable exceptions, especially due to invalid inputs, are called within try-except blocks in critical or user-facing parts of the application to maintain stability and robustness."
+    ]
+  },
+  "fix_results": {
+    "success": true,
+    "duration": 73.92675399780273,
+    "files_modified": 1,
+    "functions_fixed": [],
+    "commit_sha": null,
+    "commit_message": "",
+    "total_lines_changed": 0,
+    "fix_confidence_average": 0.0
+  },
+  "test_results": {
+    "success": true,
+    "duration": 149.56550335884094,
+    "functions_discovered": 1,
+    "test_functions": [
+      {
+        "function_name": "calculate_average",
+        "file_path": "src/main.py",
+        "test_name": "test_calculate_average_with_positive_numbers",
+        "status": "generated",
+        "execution_time": 0.0,
+        "error_message": null
+      }
+    ],
+    "tests_generated": 1,
+    "tests_executed": 1,
+    "tests_passed": 1,
+    "tests_failed": 0,
+    "test_coverage_percentage": 0.0,
+    "execution_time_total": 0.0
+  },
+  "success_rate": 100.0,
+  "resource_metrics": {
+    "total_api_calls": 0,
+    "gemini_api_calls": 0,
+    "github_api_calls": 0,
+    "total_processing_time": 265.7259318828583,
+    "memory_usage_peak": 0.0
+  },
+  "previous_run_comparison": null,
+  "errors": [],
+  "warnings": []
+}
