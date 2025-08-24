@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     # AI Model Configuration
     gemini_api_key: Optional[str] = None
     
+    # CodeGPT Configuration (for MCP)
+    codegpt_api_key: Optional[str] = None
+    codegpt_org_id: Optional[str] = None
+    codegpt_graph_id: Optional[str] = None
+    
     # Application Configuration
     port: int = 8000
     debug: bool = True

@@ -8,18 +8,29 @@ from dotenv import load_dotenv
 import os
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 import uvicorn
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Dict, Any, List
+import json
+import asyncio
+import time
 
 # Import our agents
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.agents.pipeline_orchestrator import get_pipeline_orchestrator
+# Add project root to path for imports
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
+# Try both import patterns for flexibility
+try:
+    from src.agents.pipeline_orchestrator import get_pipeline_orchestrator
+except ModuleNotFoundError:
+    # Fallback for when running from src directory
+    from agents.pipeline_orchestrator import get_pipeline_orchestrator
 
 app = FastAPI(
     title="Hackademia AI Pipeline",
@@ -29,6 +40,41 @@ app = FastAPI(
 
 # Get global instances
 pipeline = get_pipeline_orchestrator()
+
+class WebSocketManager:
+    """Simple WebSocket connection manager"""
+    def __init__(self):
+        self.connections: Dict[str, List[WebSocket]] = {}
+        
+    async def connect(self, websocket: WebSocket, pipeline_id: str):
+        await websocket.accept()
+        if pipeline_id not in self.connections:
+            self.connections[pipeline_id] = []
+        self.connections[pipeline_id].append(websocket)
+        print(f"✅ WebSocket connected to {pipeline_id}")
+        
+    def disconnect(self, websocket: WebSocket, pipeline_id: str):
+        if pipeline_id in self.connections:
+            self.connections[pipeline_id].remove(websocket)
+            if not self.connections[pipeline_id]:
+                del self.connections[pipeline_id]
+        print(f"❌ WebSocket disconnected from {pipeline_id}")
+        
+    async def send_message(self, pipeline_id: str, message: dict):
+        if pipeline_id in self.connections:
+            dead_connections = []
+            for connection in self.connections[pipeline_id]:
+                try:
+                    await connection.send_text(json.dumps(message))
+                except:
+                    dead_connections.append(connection)
+            
+            # Clean up dead connections
+            for dead_conn in dead_connections:
+                self.connections[pipeline_id].remove(dead_conn)
+
+websocket_manager = WebSocketManager()
+pipeline.set_websocket_manager(websocket_manager)
 
 class WebhookPayload(BaseModel):
     """GitHub webhook payload model"""
@@ -138,6 +184,31 @@ async def get_pipeline_status(pipeline_id: str):
         return status
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.websocket("/ws/{pipeline_id}")
+async def websocket_endpoint(websocket: WebSocket, pipeline_id: str):
+    """WebSocket endpoint for real-time pipeline updates"""
+    await websocket_manager.connect(websocket, pipeline_id)
+    try:
+        # Just keep the connection alive - no automatic demo messages
+        while True:
+            try:
+                data = await websocket.receive_text()
+                # Echo back for ping/pong or send acknowledgment
+                await websocket.send_text(json.dumps({
+                    "type": "ack", 
+                    "message": f"Connected to {pipeline_id}",
+                    "timestamp": time.time()
+                }))
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                print(f"WebSocket error: {e}")
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        websocket_manager.disconnect(websocket, pipeline_id)
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hackademia Pipeline Monitor</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .stages-container { display: flex; gap: 10px; margin: 20px 0; }
+        .stage { padding: 10px 20px; border: 2px solid #ddd; border-radius: 5px; background: #f9f9f9; }
+        .stage.active { border-color: #007bff; background: #e7f3ff; }
+        .stage.success { border-color: #28a745; background: #d4edda; }
+        .stage.failed { border-color: #dc3545; background: #f8d7da; }
+        .progress-bar { width: 100%; height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress { height: 100%; background: #007bff; transition: width 0.3s ease; width: 0%; }
+        .log-container { max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; font-family: monospace; background: #f8f9fa; }
+        .connect-section { margin-bottom: 20px; }
+        input[type="text"] { padding: 8px; margin: 5px; width: 300px; }
+        button { padding: 8px 16px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Hackademia Pipeline Monitor</h1>
+    
+    <div class="connect-section">
+        <h3>🔗 Auto-connecting to WebSocket...</h3>
+        <span id="connection-status">Connecting...</span>
+    </div>
+    
+    <div id="pipeline-container" style="display: none;">
+        <h2 id="pipeline-status">Waiting for pipeline...</h2>
+        
+        <div id="stages" class="stages-container">
+            <!-- Stages will be populated dynamically -->
+        </div>
+        
+        <div id="progress-container">
+            <div class="stage-progress">
+                <label>Current Stage Progress:</label>
+                <div class="progress-bar">
+                    <div id="current-progress" class="progress"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="build-log" class="log-container">
+            <div>📋 Real-time pipeline logs will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+
+        // Auto-connect when page loads
+        window.onload = function() {
+            connectWebSocket();
+        };
+
+        function connectWebSocket() {
+            // Connect to test pipeline for demo messages
+            ws = new WebSocket('ws://localhost:8000/ws/test_pipeline_123');
+
+            ws.onopen = function(event) {
+                document.getElementById('connection-status').textContent = 'Connected - Listening for ALL pipeline messages';
+                document.getElementById('connection-status').style.color = 'green';
+                document.getElementById('pipeline-container').style.display = 'block';
+                updateLog('🔗 Connected to WebSocket - Waiting for any pipeline...');
+            };
+
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                console.log('Received:', message);
+                
+                // Show ALL messages in logs
+                updateLog(`📨 RAW MESSAGE: ${JSON.stringify(message, null, 2)}`);
+                
+                // Process known message types
+                switch(message.type) {
+                    case 'pipeline_start':
+                        initializePipeline(message);
+                        break;
+                    case 'stage_start':
+                        startStage(message);
+                        break;
+                    case 'status_update':
+                        updateProgress(message);
+                        break;
+                    case 'stage_complete':
+                        completeStage(message);
+                        break;
+                    case 'pipeline_complete':
+                        finalizePipeline(message);
+                        break;
+                    case 'error':
+                        handleError(message);
+                        break;
+                    default:
+                        updateLog(`🔍 UNKNOWN MESSAGE TYPE: ${message.type}`);
+                }
+            };
+
+            ws.onclose = function(event) {
+                document.getElementById('connection-status').textContent = 'Disconnected';
+                document.getElementById('connection-status').style.color = 'red';
+                updateLog('🔌 Connection closed');
+            };
+
+            ws.onerror = function(error) {
+                updateLog('❌ WebSocket error: ' + error);
+                document.getElementById('connection-status').textContent = 'Connection Error';
+                document.getElementById('connection-status').style.color = 'red';
+            };
+        }
+
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function initializePipeline(data) {
+            document.getElementById('pipeline-status').textContent = 
+                `Pipeline started for PR #${data.pr_number} in ${data.repo_name}`;
+            
+            const stagesHtml = data.stages.map(stage => 
+                `<div class="stage" id="stage-${stage}">${stage.toUpperCase()}</div>`
+            ).join('');
+            document.getElementById('stages').innerHTML = stagesHtml;
+            
+            updateLog(`🚀 Pipeline started: ${data.repo_name} PR #${data.pr_number}`);
+            updateLog(`📋 Stages: ${data.stages.join(' → ')}`);
+        }
+
+        function startStage(data) {
+            // Remove active class from all stages
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            
+            const stageElement = document.getElementById(`stage-${data.stage}`);
+            if (stageElement) {
+                stageElement.classList.add('active');
+            }
+            updateLog(`🔄 ${data.message}`);
+        }
+
+        function updateProgress(data) {
+            const progressBar = document.getElementById('current-progress');
+            progressBar.style.width = `${data.progress}%`;
+            updateLog(`📊 ${data.message} (${data.progress}%)`);
+        }
+
+        function completeStage(data) {
+            const stageElement = document.getElementById(`stage-${data.stage}`);
+            if (stageElement) {
+                stageElement.classList.remove('active');
+                stageElement.classList.add(data.status === 'success' ? 'success' : 'failed');
+            }
+            
+            const icon = data.status === 'success' ? '✅' : '❌';
+            updateLog(`${icon} ${data.message} (${data.duration.toFixed(1)}s)`);
+            
+            // Reset progress bar
+            document.getElementById('current-progress').style.width = '0%';
+        }
+
+        function finalizePipeline(data) {
+            const icon = data.status === 'success' ? '🎉' : '💥';
+            document.getElementById('pipeline-status').textContent = 
+                `${icon} Pipeline ${data.status} (${data.total_duration.toFixed(1)}s)`;
+            
+            updateLog(`${icon} Pipeline completed with status: ${data.status}`);
+            updateLog(`⏱️ Total duration: ${data.total_duration.toFixed(1)} seconds`);
+        }
+
+        function handleError(data) {
+            updateLog(`❌ Error in ${data.stage}: ${data.message}`);
+            if (data.details) {
+                updateLog(`📝 Details: ${data.details}`);
+            }
+        }
+
+        function updateLog(message) {
+            const log = document.getElementById('build-log');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+    </script>
+</body>
+</html>
