@@ -42,7 +42,7 @@ app = FastAPI(
 pipeline = get_pipeline_orchestrator()
 
 class WebSocketManager:
-    """Simple WebSocket connection manager"""
+    """Enhanced WebSocket connection manager with broadcast support"""
     def __init__(self):
         self.connections: Dict[str, List[WebSocket]] = {}
         
@@ -55,23 +55,47 @@ class WebSocketManager:
         
     def disconnect(self, websocket: WebSocket, pipeline_id: str):
         if pipeline_id in self.connections:
-            self.connections[pipeline_id].remove(websocket)
-            if not self.connections[pipeline_id]:
-                del self.connections[pipeline_id]
-        print(f"❌ WebSocket disconnected from {pipeline_id}")
+            try:
+                self.connections[pipeline_id].remove(websocket)
+                if not self.connections[pipeline_id]:
+                    del self.connections[pipeline_id]
+                print(f"❌ WebSocket disconnected from {pipeline_id}")
+            except ValueError:
+                pass  # Connection already removed
         
     async def send_message(self, pipeline_id: str, message: dict):
+        """Send message to specific pipeline listeners and broadcast to all listeners"""
+        # Send to specific pipeline listeners
         if pipeline_id in self.connections:
-            dead_connections = []
-            for connection in self.connections[pipeline_id]:
-                try:
-                    await connection.send_text(json.dumps(message))
-                except:
-                    dead_connections.append(connection)
-            
-            # Clean up dead connections
-            for dead_conn in dead_connections:
-                self.connections[pipeline_id].remove(dead_conn)
+            await self._send_to_connections(self.connections[pipeline_id], message)
+        
+        # Also send to "all_pipelines" listeners with pipeline context
+        if "all_pipelines" in self.connections:
+            message_with_id = {**message, "pipeline_id": pipeline_id}
+            await self._send_to_connections(self.connections["all_pipelines"], message_with_id)
+    
+    async def _send_to_connections(self, connections: List[WebSocket], message: dict):
+        """Helper method to send messages to a list of connections"""
+        dead_connections = []
+        for connection in connections:
+            try:
+                await connection.send_text(json.dumps(message))
+            except:
+                dead_connections.append(connection)
+        
+        # Clean up dead connections
+        for dead_conn in dead_connections:
+            try:
+                connections.remove(dead_conn)
+            except ValueError:
+                pass  # Already removed
+    
+    def get_connection_stats(self) -> Dict[str, int]:
+        """Get connection statistics"""
+        return {
+            pipeline_id: len(connections) 
+            for pipeline_id, connections in self.connections.items()
+        }
 
 websocket_manager = WebSocketManager()
 pipeline.set_websocket_manager(websocket_manager)
@@ -185,9 +209,44 @@ async def get_pipeline_status(pipeline_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/pipelines/active")
+async def get_active_pipelines():
+    """Get list of currently active pipeline connections"""
+    stats = websocket_manager.get_connection_stats()
+    return {
+        "active_connections": stats,
+        "total_connections": sum(stats.values()),
+        "pipeline_count": len([k for k in stats.keys() if k != "all_pipelines"])
+    }
+
+@app.websocket("/ws/all")
+async def websocket_all_pipelines(websocket: WebSocket):
+    """WebSocket endpoint for all pipeline updates - clients connect here to monitor everything"""
+    await websocket_manager.connect(websocket, "all_pipelines")
+    try:
+        while True:
+            try:
+                data = await websocket.receive_text()
+                # Send acknowledgment for any received messages
+                await websocket.send_text(json.dumps({
+                    "type": "ack", 
+                    "message": "Connected to all pipelines - you will receive updates from all active pipelines",
+                    "timestamp": time.time(),
+                    "connection_stats": websocket_manager.get_connection_stats()
+                }))
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                print(f"WebSocket /ws/all error: {e}")
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        websocket_manager.disconnect(websocket, "all_pipelines")
+
 @app.websocket("/ws/{pipeline_id}")
 async def websocket_endpoint(websocket: WebSocket, pipeline_id: str):
-    """WebSocket endpoint for real-time pipeline updates"""
+    """WebSocket endpoint for specific pipeline updates"""
     await websocket_manager.connect(websocket, pipeline_id)
     try:
         # Just keep the connection alive - no automatic demo messages
@@ -197,13 +256,13 @@ async def websocket_endpoint(websocket: WebSocket, pipeline_id: str):
                 # Echo back for ping/pong or send acknowledgment
                 await websocket.send_text(json.dumps({
                     "type": "ack", 
-                    "message": f"Connected to {pipeline_id}",
+                    "message": f"Connected to pipeline {pipeline_id}",
                     "timestamp": time.time()
                 }))
             except WebSocketDisconnect:
                 break
             except Exception as e:
-                print(f"WebSocket error: {e}")
+                print(f"WebSocket error for {pipeline_id}: {e}")
                 break
     except WebSocketDisconnect:
         pass
