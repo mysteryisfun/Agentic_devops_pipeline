@@ -1,0 +1,161 @@
+{
+  "pipeline_id": "mysteryisfun/test-repo_123_1703123456",
+  "repository_name": "mysteryisfun/test-repo",
+  "branch_name": "feature/user-authentication",
+  "pr_number": 123,
+  "pipeline_status": "success",
+  "start_timestamp": "2025-08-24T10:46:52.452295",
+  "end_timestamp": "2025-08-24T10:46:52.452295",
+  "total_duration": 112.1,
+  "trigger_info": {
+    "trigger_type": "webhook",
+    "triggered_by": "mysteryisfun",
+    "event_type": "pull_request.opened",
+    "timestamp": "2025-08-24T10:46:52.452295"
+  },
+  "build_results": {
+    "success": true,
+    "duration": 15.5,
+    "files_downloaded": 12,
+    "file_types_processed": [
+      ".py",
+      ".js",
+      ".json",
+      ".md"
+    ],
+    "build_errors": [],
+    "files_analyzed": 12
+  },
+  "analysis_results": {
+    "success": true,
+    "duration": 32.7,
+    "files_analyzed": 12,
+    "total_issues": 8,
+    "vulnerabilities": [
+      {
+        "type": "SQL Injection",
+        "description": "Direct string concatenation in SQL query",
+        "severity": "critical",
+        "file_path": "src/database/user_service.py",
+        "line_number": 45,
+        "confidence_score": 0.95,
+        "category": "security"
+      },
+      {
+        "type": "XSS Vulnerability",
+        "description": "Unescaped user input in HTML template",
+        "severity": "high",
+        "file_path": "src/templates/user_profile.py",
+        "line_number": 78,
+        "confidence_score": 0.87,
+        "category": "security"
+      },
+      {
+        "type": "Performance Issue",
+        "description": "N+1 query pattern detected",
+        "severity": "medium",
+        "file_path": "src/models/order.py",
+        "line_number": 123,
+        "confidence_score": 0.72,
+        "category": "performance"
+      }
+    ],
+    "severity_breakdown": {
+      "critical": 1,
+      "high": 2,
+      "medium": 3,
+      "low": 2
+    },
+    "categories_breakdown": {
+      "security": 3,
+      "performance": 2,
+      "code_quality": 3
+    },
+    "overall_risk_level": "HIGH",
+    "ai_confidence_score": 0.85,
+    "recommendations": [
+      "Use parameterized queries to prevent SQL injection",
+      "Implement proper input sanitization",
+      "Optimize database queries to reduce N+1 patterns"
+    ]
+  },
+  "fix_results": {
+    "success": true,
+    "duration": 18.3,
+    "files_modified": 2,
+    "functions_fixed": [
+      {
+        "function_name": "get_user_data",
+        "file_path": "src/database/user_service.py",
+        "fix_type": "sql_injection_prevention",
+        "description": "Replaced string concatenation with parameterized query",
+        "confidence_score": 0.93,
+        "lines_changed": 3
+      },
+      {
+        "function_name": "render_profile",
+        "file_path": "src/templates/user_profile.py",
+        "fix_type": "xss_prevention",
+        "description": "Added HTML escaping for user input",
+        "confidence_score": 0.89,
+        "lines_changed": 2
+      }
+    ],
+    "commit_sha": "abc123def456",
+    "commit_message": "\ud83e\udd16 AI Fix: Security vulnerabilities resolved [skip-pipeline]",
+    "total_lines_changed": 5,
+    "fix_confidence_average": 0.91
+  },
+  "test_results": {
+    "success": true,
+    "duration": 45.6,
+    "functions_discovered": 8,
+    "test_functions": [
+      {
+        "function_name": "test_get_user_data_sql_injection",
+        "file_path": "tests/test_user_service.py",
+        "test_name": "test_sql_injection_prevention",
+        "status": "passed",
+        "execution_time": 0.25,
+        "error_message": null
+      },
+      {
+        "function_name": "test_render_profile_xss",
+        "file_path": "tests/test_user_profile.py",
+        "test_name": "test_xss_prevention",
+        "status": "passed",
+        "execution_time": 0.18,
+        "error_message": null
+      },
+      {
+        "function_name": "test_order_performance",
+        "file_path": "tests/test_order.py",
+        "test_name": "test_query_optimization",
+        "status": "failed",
+        "execution_time": 1.2,
+        "error_message": "AssertionError: Query count exceeded threshold: 15 > 5"
+      }
+    ],
+    "tests_generated": 6,
+    "tests_executed": 3,
+    "tests_passed": 2,
+    "tests_failed": 1,
+    "test_coverage_percentage": 78.5,
+    "execution_time_total": 1.63
+  },
+  "success_rate": 75.0,
+  "resource_metrics": {
+    "total_api_calls": 47,
+    "gemini_api_calls": 23,
+    "github_api_calls": 24,
+    "total_processing_time": 112.1,
+    "memory_usage_peak": 256.7
+  },
+  "previous_run_comparison": null,
+  "errors": [
+    "Test execution timeout on performance test"
+  ],
+  "warnings": [
+    "API rate limit approaching"
+  ]
+}
