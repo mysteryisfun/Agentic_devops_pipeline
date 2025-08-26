@@ -8,6 +8,7 @@ gunicorn
 # GitHub Integration
 PyGithub
 requests
+aiohttp
 
 # AI & LLM Integration
 google-generativeai

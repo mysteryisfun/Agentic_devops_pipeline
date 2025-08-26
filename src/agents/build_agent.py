@@ -157,7 +157,6 @@ class BuildAgent:
         Raises detailed exception on failure for diagnostics.
         """
         temp_dir = tempfile.mkdtemp(prefix="build_agent_")
-        print(f"🔍 DEBUG: Attempting to clone repo_name='{repo_name}' branch='{branch}'")
         
         # Validate repo name format
         if '/' not in repo_name:
@@ -173,9 +172,6 @@ class BuildAgent:
                 settings = None  # type: ignore
         
         token = (os.getenv('GITHUB_TOKEN') or os.getenv('GITHUB_PAT') or (settings.github_token if settings else None))
-        print(f"🔑 DEBUG: Token available: {'Yes' if token else 'No'}")
-        if token:
-            print(f"🔑 DEBUG: Token starts with: {token[:8]}...")
         
         # Use token directly in URL - this method works reliably
         if token:
@@ -184,9 +180,6 @@ class BuildAgent:
         else:
             repo_url = f"https://github.com/{repo_name}.git"
             cmd = ["git", "clone", "--depth", "1", "--branch", branch, repo_url, temp_dir]
-        
-        print(f"⚙️ DEBUG: Git command: git clone --depth 1 --branch {branch} [AUTHENTICATED_URL] {temp_dir}")
-        print(f"⚙️ DEBUG: Temp directory: {temp_dir}")
         
         try:
             # Use thread executor for Windows compatibility (asyncio.create_subprocess_exec has issues on Windows)
@@ -200,13 +193,7 @@ class BuildAgent:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 result = await loop.run_in_executor(executor, run_git_clone)
             
-            print(f"🔄 DEBUG: Git process completed with exit code: {result.returncode}")
-            
             if result.returncode != 0:
-                print(f"❌ DEBUG: Git clone failed with exit code {result.returncode}")
-                print(f"❌ DEBUG: stderr: '{result.stderr}'")
-                print(f"❌ DEBUG: stdout: '{result.stdout}'")
-                
                 # Return the actual error instead of generic message
                 actual_error = result.stderr or result.stdout or 'no output from git command'
                 raise Exception(f"git clone failed (exit {result.returncode}) for {repo_name}@{branch}: {actual_error}")
@@ -214,21 +201,16 @@ class BuildAgent:
         except subprocess.TimeoutExpired:
             raise Exception(f"Git clone timed out after 5 minutes for {repo_name}@{branch}")
         except Exception as e:
-            print(f"❌ DEBUG: Failed to execute git command: {e}")
             import traceback
-            print(f"❌ DEBUG: Traceback: {traceback.format_exc()}")
             raise Exception(f"Failed to execute git clone command: {e}")
-        
-        print(f"✅ DEBUG: Repository cloned successfully to {temp_dir}")
         
         # Verify the clone worked by checking if files exist
         try:
             files = os.listdir(temp_dir)
-            print(f"✅ DEBUG: Clone verification - files found: {len(files)} files")
             if len(files) == 0:
                 raise Exception(f"Repository cloned but directory is empty: {temp_dir}")
         except Exception as e:
-            print(f"⚠️ DEBUG: Could not verify clone contents: {e}")
+            pass  # Skip verification error logging
         
         return temp_dir
 

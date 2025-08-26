@@ -156,7 +156,7 @@ class AutonomousMCPAgent:
                     
                     # Check for generic/repeated responses
                     if self._is_generic_response(result['content']):
-                        print(f"⚠️ Generic response detected - may skip similar questions")
+                        pass  # Skip generic response logging
                 elif result and 'error' in result:
                     print(f"❌ Error: {result['error']}")
                 
@@ -165,8 +165,6 @@ class AutonomousMCPAgent:
                     "result": result,
                     "reasoning": reasoning
                 }
-            
-            print(f"📊 Total context gathered: {total_context_chars} characters")
             
             return {
                 "scope_assessment": scope,
@@ -190,7 +188,6 @@ class AutonomousMCPAgent:
         content_str = str(content).lower()
         generic_indicators = [
             "repository mysteryisfun/test",
-            "similar node information found",
             "no valid subpaths found",
             "information about method"
         ]

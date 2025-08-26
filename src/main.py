@@ -10,6 +10,7 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
 from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from pydantic import BaseModel
 from typing import Dict, Any, List
@@ -28,9 +29,11 @@ sys.path.insert(0, project_root)
 # Try both import patterns for flexibility
 try:
     from src.agents.pipeline_orchestrator import get_pipeline_orchestrator
+    from src.utils.terminal_websocket import get_terminal_websocket_manager
 except ModuleNotFoundError:
     # Fallback for when running from src directory
     from agents.pipeline_orchestrator import get_pipeline_orchestrator
+    from utils.terminal_websocket import get_terminal_websocket_manager
 
 app = FastAPI(
     title="Hackademia AI Pipeline",
@@ -38,8 +41,18 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Add CORS middleware to allow frontend connections
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Get global instances
 pipeline = get_pipeline_orchestrator()
+terminal_manager = get_terminal_websocket_manager()
 
 class WebSocketManager:
     """Enhanced WebSocket connection manager with broadcast support"""
@@ -124,6 +137,74 @@ async def health_check():
         "agents_available": True
     }
 
+@app.post("/webhook/results")
+async def pipeline_results_webhook(request: Request):
+    """
+    Webhook endpoint to receive comprehensive pipeline results
+    This can be used by external systems to process pipeline outcomes
+    """
+    try:
+        payload = await request.json()
+        
+        # Validate the payload structure
+        if "event_type" not in payload or payload["event_type"] != "pipeline_complete":
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid webhook payload - missing event_type"}
+            )
+        
+        results = payload.get("results")
+        if not results:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Invalid webhook payload - missing results"}
+            )
+        
+        # Extract key information
+        pipeline_id = results.get("pipeline_id")
+        repo_name = results.get("repository_name")
+        pipeline_status = results.get("pipeline_status")
+        total_duration = results.get("total_duration")
+        
+        print(f"📥 Received pipeline results webhook:")
+        print(f"   Pipeline ID: {pipeline_id}")
+        print(f"   Repository: {repo_name}")
+        print(f"   Status: {pipeline_status}")
+        print(f"   Duration: {total_duration:.2f}s")
+        
+        # Log key metrics
+        build_success = results.get("build_results", {}).get("success", False)
+        analysis_issues = len(results.get("analysis_results", {}).get("vulnerabilities", []))
+        fixes_applied = len(results.get("fix_results", {}).get("functions_fixed", []))
+        tests_generated = results.get("test_results", {}).get("tests_generated", 0)
+        
+        print(f"   Build: {'✅' if build_success else '❌'}")
+        print(f"   Issues Found: {analysis_issues}")
+        print(f"   Fixes Applied: {fixes_applied}")
+        print(f"   Tests Generated: {tests_generated}")
+        
+        # Here you could integrate with external systems:
+        # - Send to monitoring systems
+        # - Update dashboards
+        # - Trigger notifications
+        # - Log to analytics platforms
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "Pipeline results received successfully",
+                "pipeline_id": pipeline_id,
+                "processed": True
+            }
+        )
+        
+    except Exception as e:
+        print(f"❌ Error processing pipeline results webhook: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to process webhook: {str(e)}"}
+        )
+
 @app.post("/webhook/github")
 async def github_webhook(request: Request):
     """
@@ -156,10 +237,39 @@ async def github_webhook(request: Request):
         pr_title = pr_data.get("title")
         repo_name = repo_data.get("full_name")
         
+        # 🚫 RECURSION PREVENTION: Check if this is triggered by AI-generated commits
+        if action == "synchronize":
+            # Get the latest commit from the webhook payload
+            head_commit = pr_data.get("head", {}).get("sha")
+            if head_commit:
+                # Check if the latest commits are AI-generated
+                is_ai_commit = await pipeline.is_ai_generated_commit(repo_name, head_commit)
+                if is_ai_commit:
+                    print(f"🚫 Skipping pipeline - triggered by AI-generated commit: {head_commit[:8]}")
+                    return JSONResponse(
+                        status_code=200,
+                        content={
+                            "message": "Skipping pipeline - triggered by AI commit",
+                            "pr_number": pr_number,
+                            "repo": repo_name,
+                            "commit_sha": head_commit,
+                            "reason": "ai_generated_commit"
+                        }
+                    )
+        
         print(f"🚀 Processing PR #{pr_number}: {pr_title} in {repo_name}")
         
-        # Start multi-agent pipeline
-        pipeline_id = await pipeline.start_pipeline(pr_number, repo_name)
+        # Gather trigger information for the results webhook
+        sender_info = payload.get("sender", {})
+        trigger_info = {
+            "trigger_type": "webhook",
+            "triggered_by": sender_info.get("login", "github"),
+            "event_type": f"pull_request.{action}",
+            "timestamp": time.time()
+        }
+        
+        # Start multi-agent pipeline with trigger information
+        pipeline_id = await pipeline.start_pipeline(pr_number, repo_name, trigger_info)
         
         return JSONResponse(
             status_code=200,
@@ -208,6 +318,100 @@ async def get_pipeline_status(pipeline_id: str):
         return status
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Terminal Management Endpoints
+
+@app.post("/terminal/start")
+async def start_terminal_session(request: Request):
+    """Start a new terminal session"""
+    try:
+        payload = await request.json()
+        session_id = payload.get("session_id", f"terminal_{int(time.time())}")
+        command = payload.get("command", "")
+        cwd = payload.get("cwd")
+        
+        if not command:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Command is required"}
+            )
+        
+        success = await terminal_manager.start_terminal_session(session_id, command, cwd)
+        
+        return JSONResponse(
+            status_code=200 if success else 400,
+            content={
+                "success": success,
+                "session_id": session_id,
+                "command": command,
+                "cwd": cwd,
+                "message": "Terminal session started" if success else "Failed to start session"
+            }
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to start terminal session: {str(e)}"}
+        )
+
+@app.get("/terminal/sessions")
+async def list_terminal_sessions():
+    """List all active terminal sessions"""
+    try:
+        sessions = terminal_manager.list_active_sessions()
+        return JSONResponse(
+            status_code=200,
+            content={
+                "sessions": sessions,
+                "total": len(sessions)
+            }
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to list sessions: {str(e)}"}
+        )
+
+@app.get("/terminal/{session_id}")
+async def get_terminal_session_status(session_id: str):
+    """Get status of a specific terminal session"""
+    try:
+        status = terminal_manager.get_session_status(session_id)
+        
+        if status is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": f"Session {session_id} not found"}
+            )
+        
+        return JSONResponse(
+            status_code=200,
+            content={"status": status}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to get session status: {str(e)}"}
+        )
+
+@app.post("/terminal/{session_id}/terminate")
+async def terminate_terminal_session(session_id: str):
+    """Terminate a specific terminal session"""
+    try:
+        await terminal_manager.terminate_session(session_id)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "session_id": session_id,
+                "message": "Session terminated"
+            }
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to terminate session: {str(e)}"}
+        )
 
 @app.get("/pipelines/active")
 async def get_active_pipelines():
@@ -268,6 +472,88 @@ async def websocket_endpoint(websocket: WebSocket, pipeline_id: str):
         pass
     finally:
         websocket_manager.disconnect(websocket, pipeline_id)
+
+@app.websocket("/ws/terminal/all")
+async def terminal_websocket_all(websocket: WebSocket):
+    """WebSocket endpoint for all terminal sessions"""
+    await terminal_manager.connect(websocket, "all_terminals")
+    try:
+        while True:
+            try:
+                data = await websocket.receive_text()
+                # Handle terminal commands or ping/pong
+                message = json.loads(data)
+                
+                if message.get("type") == "ping":
+                    await websocket.send_text(json.dumps({
+                        "type": "pong",
+                        "timestamp": time.time()
+                    }))
+                elif message.get("type") == "list_sessions":
+                    sessions = terminal_manager.list_active_sessions()
+                    await websocket.send_text(json.dumps({
+                        "type": "session_list",
+                        "sessions": sessions,
+                        "timestamp": time.time()
+                    }))
+                    
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                print(f"Terminal WebSocket /ws/terminal/all error: {e}")
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        terminal_manager.disconnect(websocket, "all_terminals")
+
+@app.websocket("/ws/terminal/{session_id}")
+async def terminal_websocket_session(websocket: WebSocket, session_id: str):
+    """WebSocket endpoint for specific terminal session"""
+    await terminal_manager.connect(websocket, session_id)
+    try:
+        while True:
+            try:
+                data = await websocket.receive_text()
+                message = json.loads(data)
+                
+                if message.get("type") == "ping":
+                    await websocket.send_text(json.dumps({
+                        "type": "pong",
+                        "session_id": session_id,
+                        "timestamp": time.time()
+                    }))
+                elif message.get("type") == "start_session":
+                    command = message.get("command", "")
+                    cwd = message.get("cwd")
+                    if command:
+                        success = await terminal_manager.start_terminal_session(session_id, command, cwd)
+                        await websocket.send_text(json.dumps({
+                            "type": "session_start_response",
+                            "session_id": session_id,
+                            "success": success,
+                            "command": command,
+                            "timestamp": time.time()
+                        }))
+                elif message.get("type") == "terminate_session":
+                    await terminal_manager.terminate_session(session_id)
+                elif message.get("type") == "get_status":
+                    status = terminal_manager.get_session_status(session_id)
+                    await websocket.send_text(json.dumps({
+                        "type": "session_status",
+                        "status": status,
+                        "timestamp": time.time()
+                    }))
+                    
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                print(f"Terminal WebSocket error for {session_id}: {e}")
+                break
+    except WebSocketDisconnect:
+        pass
+    finally:
+        terminal_manager.disconnect(websocket, session_id)
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

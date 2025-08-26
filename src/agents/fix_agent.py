@@ -521,9 +521,7 @@ class FixAgent:
             print(f"📄 Gemini response preview: {response.text[:200]}...")
             
             parsed_fix = self._parse_gemini_fix_response(response.text)
-            if parsed_fix:
-                print(f"✅ Successfully parsed Gemini fix response")
-            else:
+            if not parsed_fix:
                 print(f"❌ Failed to parse Gemini fix response")
             
             return parsed_fix
