@@ -221,8 +221,8 @@ class GitHubClient:
             print(f"❌ Error updating file {filename}: {str(e)}")
             raise e
     
-    def create_comment(self, repo_name: str, pr_number: int, comment: str):
-        """Add comment to pull request"""
+    def create_comment(self, repo_name: str, pr_number: int, comment: str) -> bool:
+        """Create a comment on a PR"""
         try:
             pr = self.get_pull_request(repo_name, pr_number)
             if pr:
@@ -232,6 +232,17 @@ class GitHubClient:
         except Exception as e:
             print(f"❌ Error creating comment: {str(e)}")
             return False
+    
+    def get_commit(self, repo_name: str, commit_sha: str):
+        """Get commit details by SHA"""
+        try:
+            repo = self.get_repository(repo_name)
+            if repo:
+                return repo.get_commit(commit_sha)
+            return None
+        except Exception as e:
+            print(f"❌ Error getting commit {commit_sha}: {str(e)}")
+            return None
     
     def commit_changes(self, repo_name: str, branch: str, files_to_commit: Dict[str, str], commit_message: str):
         """Commit multiple file changes to a branch"""

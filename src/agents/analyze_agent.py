@@ -274,7 +274,6 @@ class AnalyzeAgent:
                 code_files.append(file)
                 print(f"✅ Will analyze: {file.get('filename')} ({file_ext})")
         
-        print(f"📂 Filtered {len(code_files)} code files for analysis")
         return code_files
     
     async def _autonomous_mcp_analysis(self, filename: str, code_snippet: str, build_context: Dict[str, Any], 
@@ -322,11 +321,6 @@ class AnalyzeAgent:
                 mcp_results = autonomous_result.get('mcp_results', {})
                 analysis_focus = autonomous_result.get('analysis_focus', '')
                 total_context_chars = autonomous_result.get('total_context_chars', 0)
-                
-                print(f"🤖 Autonomous analysis completed for {scope_assessment} scope")
-                print(f"❓ Asked {len(questions_asked)} targeted questions")
-                print(f"🎯 Analysis focus: {analysis_focus}")
-                print(f"📊 Context gathered: {total_context_chars} chars")
                 
                 # Format results for use in analysis prompt
                 context_summary = {
